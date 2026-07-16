@@ -1,5 +1,13 @@
 {
   "version": 2,
+  "env": {
+    "DATABASE_URL": "file:./dev.db"
+  },
+  "build": {
+    "env": {
+      "DATABASE_URL": "file:./dev.db"
+    }
+  },
   "builds": [
     {
       "src": "server.js",
