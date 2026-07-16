@@ -1,0 +1,27 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Pitch {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  
+  // The raw short problem statement submitted by the user
+  problemStatement String
+  
+  // The AI-expanded project name
+  projectName     String
+  
+  // The AI-expanded full pitch
+  pitchContent    String
+  
+  // Upvotes count
+  upvotes         Int      @default(0)
+}

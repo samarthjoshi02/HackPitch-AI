@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HackPitch AI - Presentations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#3b82f6', // Blue
+                            600: '#2563eb',
+                            400: '#60a5fa'
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155'
+                        }
+                    },
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+        body { font-family: 'Outfit', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .slide-container {
+            position: relative;
+            min-height: 250px;
+        }
+        .slide {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .slide.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Fullscreen styles */
+        .fullscreen-mode {
+            position: fixed !important;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 50;
+            background: #0f172a !important;
+            border-radius: 0 !important;
+            border: none !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fullscreen-mode .slide-container {
+            min-height: 50vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fullscreen-mode .slide h4 {
+            font-size: 3rem !important;
+            line-height: 1.2;
+        }
+        .fullscreen-mode .slide p {
+            font-size: 1.5rem !important;
+        }
+        
+        /* Editable areas indicator */
+        [contenteditable="true"]:hover {
+            background: rgba(255, 255, 255, 0.05);
+            outline: 1px dashed rgba(255, 255, 255, 0.2);
+            cursor: text;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen p-4 md:p-8 overflow-x-hidden relative">
+
+    <!-- Background glowing orbs -->
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-brand-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse pointer-events-none"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse pointer-events-none" style="animation-delay: 2s;"></div>
+
+    <div class="max-w-5xl mx-auto relative z-10">
+        <!-- Header -->
+        <header class="text-center mb-16 pt-8">
+            <h1 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-purple-400 to-brand-500 animate-gradient-x mb-4 tracking-tight">
+                HackPitch AI
+            </h1>
+            <p class="text-gray-400 text-xl font-light">Generate complete, presentation-ready pitch decks instantly.</p>
+        </header>
+
+        <!-- Submit Form -->
+        <section class="glass-panel rounded-3xl p-8 mb-16 shadow-2xl">
+            <form id="pitchForm" class="flex flex-col gap-6">
+                <div>
+                    <label class="block text-lg font-semibold mb-2 text-white">What's the problem you want to solve?</label>
+                    <textarea id="problemStatement" rows="3" required
+                        class="w-full bg-dark-900/50 border border-dark-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none placeholder-gray-500 text-lg"
+                        placeholder="e.g., Doctors spend too much time on paperwork instead of patient care..."></textarea>
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-6 items-end">
+                    <div class="w-full md:w-1/2">
+                        <label class="flex justify-between text-sm font-semibold mb-2 text-gray-300">
+                            <span>Deck Length (Pages)</span>
+                            <span id="pageCountDisplay" class="text-brand-400 font-bold bg-brand-500/10 px-2 py-0.5 rounded">5 Pages</span>
+                        </label>
+                        <input type="range" id="pageCount" min="1" max="10" value="5" class="w-full h-2 bg-dark-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                    </div>
+                    
+                    <button type="submit" id="submitBtn"
+                        class="w-full md:w-1/2 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold py-4 px-8 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 hover:-translate-y-1">
+                        <span class="text-lg">Generate Deck</span>
+                        <svg id="loadingSpinner" class="animate-spin h-6 w-6 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Pitches Dashboard -->
+        <section>
+            <div class="flex justify-between items-end mb-8 border-b border-dark-800 pb-4">
+                <h2 class="text-3xl font-bold flex items-center gap-3">
+                    <span class="bg-dark-800 p-2 rounded-xl">📚</span> Latest Decks
+                </h2>
+            </div>
+            
+            <div id="pitchesContainer" class="grid gap-10">
+                <p class="text-gray-500 text-center py-12 text-lg">Loading presentations...</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api/pitches';
+        const form = document.getElementById('pitchForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('loadingSpinner');
+        const container = document.getElementById('pitchesContainer');
+        const pageCountInput = document.getElementById('pageCount');
+        const pageCountDisplay = document.getElementById('pageCountDisplay');
+
+        // Update slider display
+        pageCountInput.addEventListener('input', (e) => {
+            pageCountDisplay.innerText = `${e.target.value} Pages`;
+        });
+
+        // Store globally for ppt download
+        let globalPitches = [];
+
+        // Store active slide index for each pitch
+        const activeSlides = {};
+
+        function changeSlide(pitchId, direction, totalSlides) {
+            let current = activeSlides[pitchId] || 0;
+            current += direction;
+            if (current < 0) current = 0;
+            if (current >= totalSlides) current = totalSlides - 1;
+            activeSlides[pitchId] = current;
+            
+            // Update UI
+            document.querySelectorAll(`.pitch-${pitchId}-slide`).forEach((el, idx) => {
+                if (idx === current) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            
+            // Update counter
+            document.getElementById(`counter-${pitchId}`).innerText = `${current + 1} / ${totalSlides}`;
+            
+            // Update buttons
+            document.getElementById(`prev-${pitchId}`).disabled = current === 0;
+            document.getElementById(`next-${pitchId}`).disabled = current === totalSlides - 1;
+            
+            document.getElementById(`prev-${pitchId}`).classList.toggle('opacity-50', current === 0);
+            document.getElementById(`next-${pitchId}`).classList.toggle('opacity-50', current === totalSlides - 1);
+            
+            // Update indicators
+            document.querySelectorAll(`.indicator-${pitchId}`).forEach((el, idx) => {
+                el.className = `w-2 h-2 rounded-full indicator-${pitchId} ${idx === current ? 'bg-brand-500' : 'bg-dark-700'}`;
+            });
+        }
+
+        function toggleFullscreen(pitchId) {
+            const el = document.getElementById(`pitch-card-${pitchId}`);
+            el.classList.toggle('fullscreen-mode');
+            const isFullscreen = el.classList.contains('fullscreen-mode');
+            
+            const btn = document.getElementById(`fullscreen-btn-${pitchId}`);
+            btn.innerHTML = isFullscreen ? 'Close Fullscreen' : 'Present Mode';
+            
+            if (isFullscreen) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Fetch and display pitches
+        async function fetchPitches() {
+            try {
+                const res = await fetch(API_URL);
+                const pitches = await res.json();
+                globalPitches = pitches;
+                
+                if (pitches.length === 0) {
+                    container.innerHTML = '<div class="glass-panel rounded-3xl p-12 text-center text-gray-400">No decks yet. Generate your first one above!</div>';
+                    return;
+                }
+
+                container.innerHTML = pitches.map(pitch => {
+                    let pages = [];
+                    try {
+                        pages = JSON.parse(pitch.pitchContent);
+                        if (!Array.isArray(pages)) throw new Error("Not array");
+                    } catch (e) {
+                        pages = [{ title: "Overview", content: pitch.pitchContent }];
+                    }
+                    
+                    activeSlides[pitch.id] = 0;
+                    const totalSlides = pages.length;
+
+                    return `
+                    <div id="pitch-card-${pitch.id}" class="glass-panel rounded-3xl p-8 flex flex-col transition-all duration-300">
+                        
+                        <!-- Header Bar -->
+                        <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                            <div>
+                                <h3 id="project-name-${pitch.id}" class="text-3xl font-extrabold text-white mb-2 outline-none focus:ring-2 focus:ring-brand-500 rounded p-1 transition-all" contenteditable="true" spellcheck="false">${pitch.projectName}</h3>
+                                <div class="text-sm text-brand-400 font-medium px-3 py-1 bg-brand-500/10 rounded-lg inline-block">
+                                    Based on: "${pitch.problemStatement}"
+                                </div>
+                            </div>
+                            <div class="flex gap-3 shrink-0 flex-wrap">
+                                <button onclick="downloadPPT(${pitch.id})" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    PPTX
+                                </button>
+                                <button onclick="toggleFullscreen(${pitch.id})" id="fullscreen-btn-${pitch.id}" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded-xl text-sm font-semibold transition">
+                                    Present Mode
+                                </button>
+                                <button onclick="upvotePitch(${pitch.id})" class="flex items-center gap-2 bg-dark-800 hover:bg-dark-700 border border-dark-600 hover:border-brand-500 rounded-xl px-4 py-2 transition-all group">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-pink-500 transition-colors" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+                                    <span class="font-bold text-white" id="upvotes-${pitch.id}">${pitch.upvotes}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Export Styling Toolbar -->
+                        <div class="bg-dark-900/60 p-4 rounded-2xl border border-dark-700 mb-6 flex flex-wrap gap-4 items-center justify-between shadow-inner">
+                            <div class="flex flex-wrap gap-4">
+                                <select id="fontFamily-${pitch.id}" onchange="updatePreview(${pitch.id})" class="bg-dark-800 text-sm text-gray-300 border border-dark-600 rounded-lg p-2 outline-none focus:border-brand-500">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Impact">Impact</option>
+                                    <option value="Comic Sans MS">Comic Sans</option>
+                                </select>
+                                <select id="fontSize-${pitch.id}" onchange="updatePreview(${pitch.id})" class="bg-dark-800 text-sm text-gray-300 border border-dark-600 rounded-lg p-2 outline-none focus:border-brand-500">
+                                    <option value="medium">Medium Font</option>
+                                    <option value="small">Small Font</option>
+                                    <option value="large">Large Font</option>
+                                </select>
+                                <select id="theme-${pitch.id}" onchange="updatePreview(${pitch.id})" class="bg-dark-800 text-sm text-gray-300 border border-dark-600 rounded-lg p-2 outline-none focus:border-brand-500">
+                                    <option value="dark">Dark Theme</option>
+                                    <option value="light">Light Theme</option>
+                                    <option value="brand">Brand Blue</option>
+                                </select>
+                            </div>
+                            <div class="text-xs text-brand-400 font-semibold bg-brand-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                Click any text below to edit
+                            </div>
+                        </div>
+
+                        <!-- Slides Area -->
+                        <div class="slide-container flex-grow bg-dark-900/40 rounded-2xl p-6 md:p-10 border border-dark-800 relative shadow-inner">
+                            ${pages.map((page, idx) => `
+                                <div class="slide pitch-${pitch.id}-slide ${idx === 0 ? 'active' : ''}">
+                                    <h4 class="text-2xl md:text-4xl font-bold text-white mb-6 outline-none focus:ring-2 focus:ring-brand-500 rounded p-2 transition-all ppt-title" contenteditable="true" spellcheck="false">${page.title}</h4>
+                                    <p class="text-gray-300 text-lg md:text-xl leading-relaxed whitespace-pre-wrap outline-none focus:ring-2 focus:ring-brand-500 rounded p-2 transition-all ppt-content" contenteditable="true" spellcheck="false">${page.content}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Carousel Controls -->
+                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-dark-800">
+                            <button id="prev-${pitch.id}" onclick="changeSlide(${pitch.id}, -1, ${totalSlides})" disabled class="p-3 bg-dark-800 hover:bg-dark-700 rounded-full transition opacity-50">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            
+                            <div class="flex gap-2 hidden sm:flex">
+                                ${pages.map((_, idx) => `<div class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-brand-500' : 'bg-dark-700'} indicator-${pitch.id}" id="ind-${pitch.id}-${idx}"></div>`).join('')}
+                            </div>
+                            
+                            <span id="counter-${pitch.id}" class="font-mono text-gray-400 font-bold">1 / ${totalSlides}</span>
+
+                            <button id="next-${pitch.id}" onclick="changeSlide(${pitch.id}, 1, ${totalSlides})" ${totalSlides <= 1 ? 'disabled class="opacity-50"' : ''} class="p-3 bg-dark-800 hover:bg-dark-700 rounded-full transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Failed to fetch:', error);
+                container.innerHTML = '<p class="text-red-400 text-center py-8">Failed to load pitches. Ensure backend is running.</p>';
+            }
+        }
+
+        // Submit new pitch
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statement = document.getElementById('problemStatement').value;
+            const pageCount = document.getElementById('pageCount').value;
+            
+            // UI Loading state
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            spinner.classList.remove('hidden');
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ problemStatement: statement, pageCount: pageCount })
+                });
+                
+                if (res.ok) {
+                    document.getElementById('problemStatement').value = '';
+                    await fetchPitches(); // Refresh the list
+                    // Scroll to the new pitch
+                    document.getElementById('pitchesContainer').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to generate presentation.');
+                }
+            } catch (error) {
+                alert('Failed to generate presentation. Is the backend running?');
+            } finally {
+                // Reset UI
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                spinner.classList.add('hidden');
+            }
+        });
+
+        // Upvote a pitch
+        async function upvotePitch(id) {
+            try {
+                const upvoteCounter = document.getElementById(`upvotes-${id}`);
+                upvoteCounter.innerText = parseInt(upvoteCounter.innerText) + 1;
+                await fetch(`${API_URL}/${id}/upvote`, { method: 'POST' });
+            } catch (error) {
+                console.error('Failed to upvote:', error);
+            }
+        }
+
+        // Live Preview for Styling Options
+        function updatePreview(id) {
+            const card = document.getElementById(`pitch-card-${id}`);
+            if (!card) return;
+            const slideContainer = card.querySelector('.slide-container');
+            const titles = card.querySelectorAll('.ppt-title');
+            const contents = card.querySelectorAll('.ppt-content');
+            
+            const fontFamily = document.getElementById(`fontFamily-${id}`).value;
+            const fontSize = document.getElementById(`fontSize-${id}`).value;
+            const theme = document.getElementById(`theme-${id}`).value;
+
+            // Apply Font Family explicitly to each element to override any CSS
+            slideContainer.style.fontFamily = fontFamily;
+            titles.forEach(t => { t.style.fontFamily = fontFamily; });
+            contents.forEach(c => { c.style.fontFamily = fontFamily; });
+            const mainTitle = card.querySelector(`h3#project-name-${id}`);
+            if (mainTitle) mainTitle.style.fontFamily = fontFamily;
+
+            // Apply Font Size
+            if (fontSize === 'small') {
+                titles.forEach(t => { t.style.fontSize = '1.5rem'; });
+                contents.forEach(c => { c.style.fontSize = '1rem'; });
+            } else if (fontSize === 'large') {
+                titles.forEach(t => { t.style.fontSize = '2.5rem'; });
+                contents.forEach(c => { c.style.fontSize = '1.5rem'; });
+            } else { // medium (revert to tailwind classes)
+                titles.forEach(t => { t.style.fontSize = ''; });
+                contents.forEach(c => { c.style.fontSize = ''; });
+            }
+
+            // Apply Theme
+            if (theme === 'light') {
+                slideContainer.style.backgroundColor = '#ffffff';
+                slideContainer.style.borderColor = '#e2e8f0';
+                titles.forEach(t => { t.style.color = '#1e3a8a'; });
+                contents.forEach(c => { c.style.color = '#334155'; });
+            } else if (theme === 'brand') {
+                slideContainer.style.backgroundColor = '#2563eb';
+                slideContainer.style.borderColor = '#1d4ed8';
+                titles.forEach(t => { t.style.color = '#ffffff'; });
+                contents.forEach(c => { c.style.color = '#e0e7ff'; });
+            } else { // dark (revert to tailwind classes)
+                slideContainer.style.backgroundColor = '';
+                slideContainer.style.borderColor = '';
+                titles.forEach(t => { t.style.color = ''; });
+                contents.forEach(c => { c.style.color = ''; });
+            }
+        }
+
+        // Download as PPTX
+        function downloadPPT(id) {
+            const pitch = globalPitches.find(p => p.id === id);
+            if (!pitch) return;
+
+            // Get Export Settings
+            const fontFamily = document.getElementById(`fontFamily-${id}`).value;
+            const fontSizeChoice = document.getElementById(`fontSize-${id}`).value;
+            const theme = document.getElementById(`theme-${id}`).value;
+
+            // Font sizing logic
+            let titleSize = 32;
+            let contentSize = 18;
+            if (fontSizeChoice === 'small') { titleSize = 24; contentSize = 14; }
+            if (fontSizeChoice === 'large') { titleSize = 40; contentSize = 24; }
+
+            // Theme logic
+            let bgColor = "1e293b"; // dark default
+            let titleColor = "3b82f6";
+            let contentColor = "f1f5f9";
+            let titleBgColor = "0f172a"; // title slide bg
+
+            if (theme === 'light') {
+                bgColor = "ffffff";
+                titleColor = "1e3a8a"; // dark blue
+                contentColor = "334155";
+                titleBgColor = "f8fafc";
+            } else if (theme === 'brand') {
+                bgColor = "2563eb"; // brand blue
+                titleColor = "ffffff";
+                contentColor = "e0e7ff";
+                titleBgColor = "1d4ed8"; // dark blue
+            }
+
+            let pptx = new PptxGenJS();
+            pptx.layout = 'LAYOUT_16x9';
+
+            // Get current Project Name from DOM (in case user edited it)
+            const projectNameElem = document.getElementById(`project-name-${id}`);
+            const actualProjectName = projectNameElem ? projectNameElem.innerText.trim() : pitch.projectName;
+
+            // Title Slide
+            let titleSlide = pptx.addSlide();
+            titleSlide.background = { color: titleBgColor };
+            titleSlide.addText(actualProjectName, { x: 1, y: 2, w: '80%', h: 1, fontSize: titleSize + 12, color: titleColor, bold: true, align: 'center', fontFace: fontFamily });
+            titleSlide.addText(pitch.problemStatement, { x: 1, y: 3.5, w: '80%', h: 1, fontSize: contentSize, color: contentColor, align: 'center', fontFace: fontFamily });
+
+            // Content Slides - Grab actual text from the DOM (capturing user edits)
+            const slideElements = document.querySelectorAll(`.pitch-${id}-slide`);
+            slideElements.forEach(slideEl => {
+                const titleEl = slideEl.querySelector('.ppt-title');
+                const contentEl = slideEl.querySelector('.ppt-content');
+                
+                const actualTitle = titleEl ? titleEl.innerText : "";
+                const actualContent = contentEl ? contentEl.innerText : "";
+
+                let slide = pptx.addSlide();
+                slide.background = { color: bgColor };
+                slide.addText(actualTitle, { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: titleSize, color: titleColor, bold: true, fontFace: fontFamily });
+                slide.addText(actualContent, { x: 0.5, y: 1.8, w: '90%', h: 4, fontSize: contentSize, color: contentColor, valign: 'top', fontFace: fontFamily });
+            });
+
+            const safeName = actualProjectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            pptx.writeFile({ fileName: `${safeName}_pitch.pptx` });
+        }
+
+        // Initial load
+        fetchPitches();
+    </script>
+</body>
+</html>
