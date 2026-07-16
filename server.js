@@ -116,7 +116,12 @@ app.post('/api/pitches/:id/upvote', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`🚀 Hackathon API Server running on http://localhost:${PORT}`);
-});
+// Start the server only if running locally (not on Vercel)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Hackathon API Server running on http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel Serverless Functions
+export default app;
