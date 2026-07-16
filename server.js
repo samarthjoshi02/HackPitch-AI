@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
 import OpenAI from 'openai';
 import 'dotenv/config';
 
@@ -10,7 +9,9 @@ const openai = new OpenAI({
 });
 
 const app = express();
-const prisma = new PrismaClient();
+// Temporary In-Memory Database for Vercel
+let memoryDB = [];
+let nextId = 1;
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -27,9 +28,7 @@ app.use(express.static('public'));
 // 1. GET all pitches (ordered by newest first)
 app.get('/api/pitches', async (req, res) => {
   try {
-    const pitches = await prisma.pitch.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+    const pitches = [...memoryDB].sort((a, b) => b.createdAt - a.createdAt);
     res.json(pitches);
   } catch (error) {
     console.error("Error fetching pitches:", error);
@@ -86,13 +85,15 @@ Output ONLY a valid JSON object with the following structure, no markdown format
     const pitchContent = JSON.stringify(aiResult.pages); // Store the array of pages as a string
     // ---------------------------
 
-    const newPitch = await prisma.pitch.create({
-      data: {
-        problemStatement,
-        projectName,
-        pitchContent,
-      }
-    });
+    const newPitch = {
+      id: nextId++,
+      problemStatement,
+      projectName,
+      pitchContent,
+      upvotes: 0,
+      createdAt: new Date()
+    };
+    memoryDB.push(newPitch);
     
     res.status(201).json(newPitch);
   } catch (error) {
@@ -105,11 +106,13 @@ Output ONLY a valid JSON object with the following structure, no markdown format
 app.post('/api/pitches/:id/upvote', async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedPitch = await prisma.pitch.update({
-      where: { id: parseInt(id) },
-      data: { upvotes: { increment: 1 } }
-    });
-    res.json(updatedPitch);
+    const pitchIndex = memoryDB.findIndex(p => p.id === parseInt(id));
+    if (pitchIndex !== -1) {
+      memoryDB[pitchIndex].upvotes += 1;
+      res.json(memoryDB[pitchIndex]);
+    } else {
+      res.status(404).json({ error: "Pitch not found" });
+    }
   } catch (error) {
     console.error("Error upvoting pitch:", error);
     res.status(500).json({ error: "Failed to upvote pitch" });
