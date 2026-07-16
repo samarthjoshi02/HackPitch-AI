@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: hackpitch-ai
+    env: node
+    buildCommand: npm install && npm run db:generate && npm run db:init
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        value: file:/data/sqlite.db
+      - key: FEATHERLESS_API_KEY
+        sync: false # User must provide this in the Render dashboard
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
